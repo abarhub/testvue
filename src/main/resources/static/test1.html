@@ -1,0 +1,146 @@
+<!--<script src="https://unpkg.com/vue"></script>-->
+<!--<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>-->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Welcome to Vue</title>
+    <script src="https://unpkg.com/vue"></script>
+</head>
+<body>
+
+<div id="app">
+    <p>{{ message }}</p>
+</div>
+
+<div id="app-5">
+    <p>{{ message }}</p>
+    <button v-on:click="reverseMessage">Reverse Message</button>
+</div>
+
+<div id="app-6">
+    <p>{{ message }}</p>
+    <input v-model="message">
+</div>
+
+<div id="app-05">
+    <p>{{ message }}</p>
+    <button v-on:click="reverseMessage">Reverse Message</button>
+</div>
+
+<div id="app-7">
+    <p>{{ message }}</p>
+    <button v-on:click="reverseMessage">Test Crypt</button>
+</div>
+
+
+<script>
+
+    new Vue({
+        el: '#app',
+        data: {
+            message: 'Hello Vue2.js!'
+        }
+    });
+
+    var app5 = new Vue({
+        el: '#app-5',
+        data: {
+            message: 'Hello Vue.js!'
+        },
+        methods: {
+            reverseMessage: function () {
+                this.message = this.message.split('').reverse().join('')
+            }
+        }
+    });
+
+    var app6 = new Vue({
+        el: '#app-6',
+        data: {
+            message: 'Hello Vue!'
+        }
+    });
+
+    var app05 = new Vue({
+        el: '#app-05',
+        data: {
+            message: 'Hello Vue.js!'
+        },
+        methods: {
+            reverseMessage: function () {
+
+                //this.message = this.message.split('').reverse().join('')
+
+                var xhttp = new XMLHttpRequest();
+                xhttp.onreadystatechange = function() {
+                    if (this.readyState == 4 && this.status == 200) {
+                        //document.getElementById("demo").innerHTML =
+                                //this.responseText;
+                        alert("message:"+this.responseText);
+                        var obj = JSON.parse(this.responseText);
+                        alert("message2:"+obj);
+                    }
+                };
+                xhttp.open("GET", "test1", true);
+                xhttp.send();
+
+            }
+        }
+    });
+
+    var app7 = new Vue({
+        el: '#app-7',
+        data: {
+            message: 'Hello Vue.js!'
+        },
+        methods: {
+            reverseMessage: function () {
+
+                //this.message = this.message.split('').reverse().join('')
+
+                //var keyToDecrypt='';
+
+                window.crypto.subtle.generateKey(
+                        {
+                            name: "RSASSA-PKCS1-v1_5",
+                            modulusLength: 2048, //can be 1024, 2048, or 4096
+                            publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
+                            hash: {name: "SHA-256"}, //can be "SHA-1", "SHA-256", "SHA-384", or "SHA-512"
+                        },
+                        true, //whether the key is extractable (i.e. can be used in exportKey)
+                        ["sign", "verify"] //can be any combination of "sign" and "verify"
+                )
+                        .then(function(key){
+                            //returns a keypair object
+                            console.log(key);
+                            console.log("publicKey",key.publicKey);
+                            console.log("privateKey",key.privateKey);
+                            var keyToDecrypt=key.publicKey;
+
+
+                            window.crypto.subtle.exportKey(
+                                    "spki",//"jwk",//"pkcs8", //can be "jwk" (public or private), "spki" (public only), or "pkcs8" (private only)
+                                    keyToDecrypt//privateKey //can be a publicKey or privateKey, as long as extractable was true
+                            )
+                                    .then(function(keydata){
+                                        //returns the exported key data
+                                        console.log("keydata",keydata);
+                                    })
+                                    .catch(function(err){
+                                        console.error("error exportKey",err);
+                                    });
+
+                        })
+                        .catch(function(err){
+                            console.error(err);
+                        });
+
+
+
+            }
+        }
+    });
+
+</script>
+</body>
+</html>
