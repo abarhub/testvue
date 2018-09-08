@@ -11,4 +11,11 @@ public class ReponseDTO {
 	public void setReponse(String reponse) {
 		this.reponse = reponse;
 	}
+
+	@Override
+	public String toString() {
+		return "ReponseDTO{" +
+				"reponse='" + reponse + '\'' +
+				'}';
+	}
 }

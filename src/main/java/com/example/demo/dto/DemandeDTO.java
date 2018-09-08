@@ -11,4 +11,11 @@ public class DemandeDTO {
 	public void setCle(String cle) {
 		this.cle = cle;
 	}
+
+	@Override
+	public String toString() {
+		return "DemandeDTO{" +
+				"cle='" + cle + '\'' +
+				'}';
+	}
 }

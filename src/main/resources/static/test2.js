@@ -191,6 +191,8 @@ function test4() {
                     cle: pem
                 };
 
+                console.info("demande=", demande);
+
                 $.ajax({
                     url: '/test2',
                     type: 'post',
