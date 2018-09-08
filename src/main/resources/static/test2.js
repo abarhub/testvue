@@ -7,7 +7,8 @@
 function test() {
     //test1();
     //test2();
-    test3();
+    //test3();
+    test4();
 }
 
 
@@ -151,6 +152,59 @@ function test3() {
                 var pem = forge.pki.publicKeyToPem(keypair.publicKey);
 
                 console.info("pem=", pem);
+            }
+        }
+    });
+}
+
+function test4() {
+    var app = new Vue({
+        el: '#app',
+        data: {
+            message: 'Hello Vue.js!'
+        },
+        methods: {
+            reverseMessage: function () {
+                var rsa = forge.pki.rsa;
+                var keypair = rsa.generateKeyPair({bits: 2048, e: 0x10001});
+                var ct = keypair.publicKey.encrypt("Arbitrary Message Here");
+                var res = keypair.privateKey.decrypt(ct);
+
+                console.info("res=", res);
+
+                var pem = forge.pki.publicKeyToPem(keypair.publicKey);
+
+                console.info("pem=", pem);
+
+                // var xhttp;
+                // xhttp=new XMLHttpRequest();
+                // xhttp.onreadystatechange = function() {
+                //     if (this.readyState == 4 && this.status == 200) {
+                //         //cFunction(this);
+                //         console.info("coucou");
+                //     }
+                // };
+                // xhttp.open("POST", url, true);
+                // xhttp.send();
+
+                var demande = {
+                    cle: pem
+                };
+
+                $.ajax({
+                    url: '/test2',
+                    type: 'post',
+                    dataType: 'json',
+                    contentType: 'application/json',
+                    success: function (data) {
+                        //$('#target').html(data.msg);
+                        console.info("reponse", data);
+
+                        console.info("res", data.reponse);
+                    },
+                    data: JSON.stringify(demande)
+                });
+
             }
         }
     });
