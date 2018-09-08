@@ -3,6 +3,7 @@ package com.example.demo.rest;
 import com.example.demo.dto.DemandeDTO;
 import com.example.demo.dto.Message;
 import com.example.demo.dto.ReponseDTO;
+import com.sun.org.apache.xml.internal.security.utils.Base64;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.util.io.pem.PemObject;
 import org.bouncycastle.util.io.pem.PemReader;
@@ -13,13 +14,15 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
-import java.security.KeyFactory;
-import java.security.PublicKey;
-import java.security.Security;
+import java.security.*;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
@@ -77,11 +80,31 @@ public class Test1Controler {
 			LOGGER.info("Exponent : {}", pub.getPublicExponent());
 			LOGGER.info("Modulus : {}", pub.getModulus());
 
+			String message="message0";
+
+			byte[] crypte=encrypt(pub,message.getBytes(StandardCharsets.UTF_8));
+
+			reponseDTO.setReponse(Base64.encode(crypte));
+
 		} catch (Exception e) {
 			LOGGER.error("Erreur", e);
 		}
 
 		return reponseDTO;
+	}
+
+	public byte[] encrypt(PublicKey key, byte[] plaintext) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException
+	{
+		Cipher cipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA1AndMGF1Padding");
+		cipher.init(Cipher.ENCRYPT_MODE, key);
+		return cipher.doFinal(plaintext);
+	}
+
+	public byte[] decrypt(PrivateKey key, byte[] ciphertext) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException
+	{
+		Cipher cipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA1AndMGF1Padding");
+		cipher.init(Cipher.DECRYPT_MODE, key);
+		return cipher.doFinal(ciphertext);
 	}
 
 	private PemObject getPemObject(String s) throws IOException {
