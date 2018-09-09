@@ -1,14 +1,14 @@
 package com.example.demo.rest;
 
-import com.example.demo.dto.DemandeDTO;
-import com.example.demo.dto.Message;
-import com.example.demo.dto.ReponseDTO;
+import com.example.demo.dto.*;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.util.encoders.Base64;
 import org.bouncycastle.util.io.pem.PemObject;
 import org.bouncycastle.util.io.pem.PemReader;
+import org.bouncycastle.util.io.pem.PemWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.Assert;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -19,9 +19,11 @@ import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.OAEPParameterSpec;
 import javax.crypto.spec.PSource;
 import javax.crypto.spec.SecretKeySpec;
+import javax.xml.bind.DatatypeConverter;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.StringReader;
+import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.security.interfaces.RSAPublicKey;
@@ -30,11 +32,19 @@ import java.security.spec.MGF1ParameterSpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @RestController
 public class Test1Controler {
 
 	private static Logger LOGGER = LoggerFactory.getLogger(Test1Controler.class);
+
+	private AtomicInteger compteur = new AtomicInteger(1);
+
+	private Map<Integer, KeyPair> map = new ConcurrentHashMap<>();
+
 
 	@RequestMapping("/entity/all")
 	public List<String> findAll() {
@@ -143,7 +153,7 @@ public class Test1Controler {
 
 			reponseDTO.setIv(base64(iv));
 
-			aesCipher.init(Cipher.ENCRYPT_MODE,secretKey,ivParams);
+			aesCipher.init(Cipher.ENCRYPT_MODE, secretKey, ivParams);
 
 			byte[] byteCipherText = aesCipher.doFinal(message.getBytes(StandardCharsets.UTF_8));
 
@@ -164,7 +174,95 @@ public class Test1Controler {
 		return reponseDTO;
 	}
 
-	public String base64(byte[] buf){
+	@RequestMapping(value = "/test4", method = RequestMethod.POST,
+			produces = "application/json", consumes = "application/json")
+	public ServerKey test4() {
+		ServerKey serverKey = new ServerKey();
+		try {
+
+			KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
+			keyGen.initialize(512);
+			KeyPair key = keyGen.genKeyPair();
+
+			int no = compteur.getAndIncrement();
+
+			map.put(no, key);
+
+			byte[] publicKey = keyGen.genKeyPair().getPublic().getEncoded();
+
+			serverKey.setId(no);
+
+			String res = null;
+			//res = DatatypeConverter.printBase64Binary(publicKey);
+			//res=java.util.Base64.getEncoder().encodeToString(publicKey);
+			res=toPEM(keyGen.genKeyPair().getPublic());
+
+			serverKey.setPublickey(res);
+
+		} catch (Exception e) {
+			LOGGER.error("Erreur", e);
+		}
+		return serverKey;
+	}
+
+	@RequestMapping(value = "/test4bis", method = RequestMethod.POST,
+			produces = "application/json", consumes = "application/json")
+	public String test4bis(@RequestBody Message2 message2) {
+
+		String res = "";
+		try {
+			LOGGER.info("message2={}", message2);
+
+			int id = message2.getId();
+
+			if (map.containsKey(id)) {
+
+				KeyPair keyPair = map.get(id);
+
+				Assert.isTrue(keyPair != null);
+
+				PrivateKey privateKey = keyPair.getPrivate();
+
+				byte[] key2 = decrypt2(privateKey, Base64.decode(message2.getKey()));
+
+				SecretKeySpec secretKey = new SecretKeySpec(key2, "EAS");
+
+				Cipher aesCipher = Cipher.getInstance("AES/CBC/PKCS5Padding", "BC");
+
+				byte[] iv = Base64.decode(message2.getIv());
+				//randomSecureRandom.nextBytes(iv);
+				IvParameterSpec ivParams = new IvParameterSpec(iv);
+
+				//reponseDTO.setIv(base64(iv));
+
+				aesCipher.init(Cipher.ENCRYPT_MODE, secretKey, ivParams);
+
+				byte[] byteCipherText = aesCipher.doFinal(message2.getMessage().getBytes(StandardCharsets.UTF_8));
+
+				String s = new String(byteCipherText, StandardCharsets.UTF_8);
+
+				LOGGER.info("s={}", s);
+
+			} else {
+				Assert.isTrue(false);
+			}
+
+		} catch (Exception e) {
+			LOGGER.error("Erreur", e);
+		}
+		return res;
+	}
+
+	public static String toPEM(PublicKey pubKey) throws IOException {
+		StringWriter sw = new StringWriter();
+		PemWriter pemWriter = new PemWriter(sw);
+		//pemWriter.writeObject(pubKey);
+		pemWriter.writeObject(new PemObject("RSA PUBLIC KEY",pubKey.getEncoded()));
+		pemWriter.close();
+		return sw.toString();
+	}
+
+	public String base64(byte[] buf) {
 		return Base64.toBase64String(buf);
 	}
 
@@ -203,6 +301,12 @@ public class Test1Controler {
 		return pemReader2;
 	}
 
+	public byte[] decrypt2(PrivateKey privateKey, byte[] encrypted) throws Exception {
+		Cipher cipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding");
+		cipher.init(Cipher.DECRYPT_MODE, privateKey);
+
+		return cipher.doFinal(encrypted);
+	}
 
 	private PublicKey generatePublicKey(KeyFactory factory,
 	                                    String s) throws InvalidKeySpecException,
