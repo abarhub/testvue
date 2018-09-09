@@ -203,6 +203,23 @@ function test4() {
                         console.info("reponse", data);
 
                         console.info("res", data.reponse);
+
+                        var data2=data.reponse;
+
+                        console.info("data2", data2);
+
+                        var decoded = forge.util.decode64(data2);
+
+                        console.info("decoded", decoded);
+
+                        var res2 = keypair.privateKey.decrypt(decoded,'RSA-OAEP', {
+                            md: forge.md.sha256.create(),
+                            mgf1: {
+                                md: forge.md.sha1.create()
+                            }
+                        });
+
+                        console.info("res2", res2);
                     },
                     data: JSON.stringify(demande)
                 });
